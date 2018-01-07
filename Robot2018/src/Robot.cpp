@@ -15,29 +15,13 @@
 
 #include <Joystick.h>
 #include <RobotDrive.h>
-
 #include <WPILib.h>
 
 class Robot : public frc::IterativeRobot {
-	RobotDrive drive; // robot drive system
-	Joystick stick; // only joystick
 public:
-	Robot() :
-		/* Initializes the variables as part of the constructor using an Initialization
-		 * list.
-		 */
-		drive(0,1), // these must be initialized in the same order
-		stick(1),	// as they are declared above.
-		autoLoopCounter(0) {
-			drive.SetExpiration(0.1);
-			/*
-			* Performs robot initialization
-			* (in this case sets the safety timer expiration for
-			* the myRobot object to .1 seconds, see the next step for an explanation of
-			* the motor safety timers).
-			*/
-		}
-
+	RobotDrive *drive;
+	Joystick *stick;
+	SmartDashboard *dashboard;
 	/*
 	 * This autonomous (along with the chooser code above) shows how to
 	 * select
@@ -73,9 +57,18 @@ public:
 		}
 	}
 
-	void TeleopInit() {}
+	void TeleopInit() {
+		drive = new RobotDrive(1, 2, 3, 4);
+		stick = new Joystick(1);
+	}
 
-	void TeleopPeriodic() {}
+	void TeleopPeriodic() {
+		while (IsOperatorControl() && IsEnabled()) {
+			drive->ArcadeDrive(stick);
+			dashboard->PutNumber("test", 5.0);
+			Wait(0.01);
+		}
+	}
 
 	void TestPeriodic() {}
 
