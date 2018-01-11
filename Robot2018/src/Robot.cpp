@@ -15,6 +15,7 @@
 
 #include <Joystick.h>
 #include <RobotDrive.h>
+#include <Servo.h>
 #include <WPILib.h>
 
 class Robot : public frc::IterativeRobot {
@@ -22,6 +23,11 @@ public:
 	RobotDrive *drive;
 	Joystick *stick;
 	SmartDashboard *dashboard;
+
+	Servo *armServo0;
+	Servo *armServo1;
+	Servo *armServo2;
+	Servo *armServo3;
 	/*
 	 * This autonomous (along with the chooser code above) shows how to
 	 * select
@@ -37,6 +43,8 @@ public:
 	 * well.
 	 */
 	void AutonomousInit() override {
+		drive = new RobotDrive(1, 2, 3, 4);
+
 		m_autoSelected = m_chooser.GetSelected();
 		// m_autoSelected = SmartDashboard::GetString(
 		// 		"Auto Selector", kAutoNameDefault);
@@ -53,24 +61,27 @@ public:
 		if (m_autoSelected == kAutoNameCustom) {
 			// Custom Auto goes here
 		} else {
-			// Default Auto goes here
+			drive->Drive(1.0, 0.0);
 		}
 	}
 
 	void TeleopInit() {
+		stick = new Joystick(5);
 		drive = new RobotDrive(1, 2, 3, 4);
-		stick = new Joystick(1);
 	}
 
 	void TeleopPeriodic() {
 		while (IsOperatorControl() && IsEnabled()) {
-			drive->ArcadeDrive(stick);
-			dashboard->PutNumber("test", 5.0);
+			drive->Drive(0.25, 0.0);
+			//drive->ArcadeDrive(stick);
+			//dashboard->PutNumber("test", 5.0);
 			Wait(0.01);
 		}
 	}
 
-	void TestPeriodic() {}
+	void TestPeriodic() {
+		drive->Drive(0.25, 0.0);
+	}
 
 private:
 	frc::LiveWindow& m_lw = *LiveWindow::GetInstance();
@@ -78,6 +89,20 @@ private:
 	const std::string kAutoNameDefault = "Default";
 	const std::string kAutoNameCustom = "My Auto";
 	std::string m_autoSelected;
+
+	void lowArmPosition() {
+		armServo0->SetAngle(0.0);
+		armServo1->SetAngle(180.0);
+		armServo2->SetAngle(0.0);
+		armServo3->SetAngle(330);
+	}
+
+	void highArmPosition() {
+		armServo0->SetAngle(90.0);
+		armServo1->SetAngle(90.0);
+		armServo2->SetAngle(90.0);
+		armServo3->SetAngle(0);
+	}
 };
 
 START_ROBOT_CLASS(Robot)
