@@ -16,18 +16,14 @@
 #include <Joystick.h>
 #include <RobotDrive.h>
 #include <Servo.h>
+#include <Timer.h>
 #include <WPILib.h>
 
 class Robot : public frc::IterativeRobot {
 public:
-	RobotDrive *drive;
 	Joystick *stick;
-	SmartDashboard *dashboard;
-
-	Servo *armServo0;
-	Servo *armServo1;
-	Servo *armServo2;
-	Servo *armServo3;
+	RobotDrive *drive;
+	Timer *timer;
 	/*
 	 * This autonomous (along with the chooser code above) shows how to
 	 * select
@@ -43,7 +39,8 @@ public:
 	 * well.
 	 */
 	void AutonomousInit() override {
-		drive = new RobotDrive(1, 2, 3, 4);
+		drive = new RobotDrive(0, 1, 2, 3);
+		drive->SetSafetyEnabled(false);
 
 		m_autoSelected = m_chooser.GetSelected();
 		// m_autoSelected = SmartDashboard::GetString(
@@ -53,7 +50,9 @@ public:
 		if (m_autoSelected == kAutoNameCustom) {
 			// Custom Auto goes here
 		} else {
-			// Default Auto goes here
+			MoveForTime(3.0, 1, 0, 0.25);
+			Wait(2);
+			MoveForTime(3.0, -1, 0, 0.25);
 		}
 	}
 
@@ -61,26 +60,25 @@ public:
 		if (m_autoSelected == kAutoNameCustom) {
 			// Custom Auto goes here
 		} else {
-			drive->Drive(1.0, 0.0);
+			// Default Auto goes here
 		}
 	}
 
 	void TeleopInit() {
-		stick = new Joystick(5);
-		drive = new RobotDrive(1, 2, 3, 4);
+		stick = new Joystick(0);
+		drive->SetSafetyEnabled(false);
 	}
 
 	void TeleopPeriodic() {
 		while (IsOperatorControl() && IsEnabled()) {
-			drive->Drive(0.25, 0.0);
-			//drive->ArcadeDrive(stick);
-			//dashboard->PutNumber("test", 5.0);
+			drive->ArcadeDrive(stick);
 			Wait(0.01);
 		}
 	}
 
 	void TestPeriodic() {
-		drive->Drive(0.25, 0.0);
+		drive->Drive(0.1, 0.0);
+		Wait(0.01);
 	}
 
 private:
@@ -90,18 +88,32 @@ private:
 	const std::string kAutoNameCustom = "My Auto";
 	std::string m_autoSelected;
 
-	void lowArmPosition() {
-		armServo0->SetAngle(0.0);
-		armServo1->SetAngle(180.0);
-		armServo2->SetAngle(0.0);
-		armServo3->SetAngle(330);
+	// (float) distance - Distance forward or backwards, in feet
+	// (float) rotation - Rotation right or left, in degrees
+	// (float) speed - The speed in which to move (0.0 to 1.0)
+	void MoveDistance(float distance, float rotation, float speed) {
+		// TO FINISH
 	}
 
-	void highArmPosition() {
-		armServo0->SetAngle(90.0);
-		armServo1->SetAngle(90.0);
-		armServo2->SetAngle(90.0);
-		armServo3->SetAngle(0);
+	// (float) time - Time to move
+	// (integer) move - Weather to move forwards (1), backwards (-1) or stay still (0)
+	// (integer) rotate - Weather to rotate right (1), left (-1) or stay still (0)
+	// (float) speed - The speed in which to move (0.0 to 1.0)
+	void MoveForTime(float time, int move, int rotate, float speed) {
+		timer = new Timer();
+		float moveSpeed = 0.0;
+		float rotateSpeed = 0.0;
+
+		if (move == 1) { moveSpeed = speed; }
+		else if (move == -1) { moveSpeed = -speed; }
+
+		if (rotate == 1) { rotateSpeed = speed; }
+		else if (rotate == -1) { rotateSpeed = -speed; }
+
+		while(timer->Get() < time) {
+			drive->Drive(moveSpeed, rotateSpeed);
+			Wait(0.01);
+		}
 	}
 };
 
