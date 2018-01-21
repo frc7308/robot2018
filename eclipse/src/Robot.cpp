@@ -15,7 +15,6 @@
 
 #include <Joystick.h>
 #include <RobotDrive.h>
-#include <Servo.h>
 #include <Timer.h>
 #include <WPILib.h>
 
@@ -40,7 +39,6 @@ public:
 	 */
 	void AutonomousInit() override {
 		drive = new RobotDrive(0, 1, 2, 3);
-		drive->SetSafetyEnabled(false);
 
 		m_autoSelected = m_chooser.GetSelected();
 		// m_autoSelected = SmartDashboard::GetString(
@@ -50,9 +48,9 @@ public:
 		if (m_autoSelected == kAutoNameCustom) {
 			// Custom Auto goes here
 		} else {
-			MoveForTime(3.0, 1, 0, 0.25);
+			MoveForTime(2, 0.0, 0.5);
 			Wait(2);
-			MoveForTime(3.0, -1, 0, 0.25);
+			MoveForTime(2, 0.0, 0.5);
 		}
 	}
 
@@ -65,8 +63,8 @@ public:
 	}
 
 	void TeleopInit() {
+		drive = new RobotDrive(0, 1, 2, 3);
 		stick = new Joystick(0);
-		drive->SetSafetyEnabled(false);
 	}
 
 	void TeleopPeriodic() {
@@ -96,22 +94,12 @@ private:
 	}
 
 	// (float) time - Time to move
-	// (integer) move - Weather to move forwards (1), backwards (-1) or stay still (0)
-	// (integer) rotate - Weather to rotate right (1), left (-1) or stay still (0)
-	// (float) speed - The speed in which to move (0.0 to 1.0)
-	void MoveForTime(float time, int move, int rotate, float speed) {
+	// (float) movement - The speed in which to move forwards or backwards (0.0 to 1.0)
+	// (float) rotation - The speed in which to rotate left or right (0.0 to 1.0)
+	void MoveForTime(float time, float movement, float rotation) {
 		timer = new Timer();
-		float moveSpeed = 0.0;
-		float rotateSpeed = 0.0;
-
-		if (move == 1) { moveSpeed = speed; }
-		else if (move == -1) { moveSpeed = -speed; }
-
-		if (rotate == 1) { rotateSpeed = speed; }
-		else if (rotate == -1) { rotateSpeed = -speed; }
-
 		while(timer->Get() < time) {
-			drive->Drive(moveSpeed, rotateSpeed);
+			drive->Drive(movement, rotation);
 			Wait(0.01);
 		}
 	}
