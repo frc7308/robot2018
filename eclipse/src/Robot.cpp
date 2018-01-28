@@ -23,34 +23,36 @@ public:
 	Joystick *stick;
 	RobotDrive *drive;
 	Timer *timer;
-	/*
-	 * This autonomous (along with the chooser code above) shows how to
-	 * select
-	 * between different autonomous modes using the dashboard. The sendable
-	 * chooser code works with the Java SmartDashboard. If you prefer the
-	 * LabVIEW Dashboard, remove all of the chooser code and uncomment the
-	 * GetString line to get the auto name from the text box below the Gyro.
-	 *
-	 * You can add additional auto modes by adding additional comparisons to
-	 * the
-	 * if-else structure below with additional strings. If using the
-	 * SendableChooser make sure to add them to the chooser code above as
-	 * well.
-	 */
+	frc::DoubleSolenoid clawActuationSolenoid {1, 2};
+	Encoder *clawEncoder;
+
+	void DisabledInit() {
+		// Zero
+	}
+
+	void DisabledPeriodic() {
+		// Zero
+	}
+
 	void AutonomousInit() override {
 		drive = new RobotDrive(0, 1, 2, 3);
+		clawEncoder = new Encoder(0, 1, false, Encoder::EncodingType::k4X);
+
+		clawEncoder->SetMinRate(10);
+		clawEncoder->SetDistancePerPulse(5);
+		clawEncoder->SetSamplesToAverage(7);
+		clawEncoder->Reset();
 
 		m_autoSelected = m_chooser.GetSelected();
+		// Uncomment below to use SmartDashboard
 		// m_autoSelected = SmartDashboard::GetString(
 		// 		"Auto Selector", kAutoNameDefault);
 		std::cout << "Auto selected: " << m_autoSelected << std::endl;
 
 		if (m_autoSelected == kAutoNameCustom) {
-			// Custom Auto goes here
+			// Custom Auto init goes here
 		} else {
-			MoveForTime(2, 0.0, 0.5);
-			Wait(2);
-			MoveForTime(2, 0.0, 0.5);
+			// Default Auto init goes here
 		}
 	}
 
@@ -58,7 +60,10 @@ public:
 		if (m_autoSelected == kAutoNameCustom) {
 			// Custom Auto goes here
 		} else {
-			// Default Auto goes here
+			//clawActuationSolenoid.Set(frc::DoubleSolenoid::Value::kOff);
+			clawActuationSolenoid.Set(frc::DoubleSolenoid::Value::kForward);
+			//clawActuationSolenoid.Set(frc::DoubleSolenoid::Value::kReverse);
+			drive->Drive(1.0, 0.0);
 		}
 	}
 
@@ -85,6 +90,17 @@ private:
 	const std::string kAutoNameDefault = "Default";
 	const std::string kAutoNameCustom = "My Auto";
 	std::string m_autoSelected;
+
+	// Component variables. State 0 is default when not zeroed.
+	float liftAngle; // Angle from lift encoder converted to 4320 deg
+	float goal_liftAngle; // Goal for the lift angle
+	float liftHeight; // Calculated lift height based on angle
+	float goal_liftHeight; // Goal for the lift height
+	int liftState; // 0 - lowest, 1 - switch, 2 - scale, -1 - err
+	float clawAngle; // Angle from claw encoder around 360 deg
+	float goal_clawAngle; // Goal for the claw angle
+	int clawState; // 0 - back, 1 - extended claw closed, 2 - extended claw open, -1 - err
+	bool robotError; // Is true if an inconsistency or error has been found]
 
 	// (float) distance - Distance forward or backwards, in feet
 	// (float) rotation - Rotation right or left, in degrees
