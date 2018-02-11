@@ -21,6 +21,8 @@
 #include <Compressor.h>
 #include <Encoder.h>
 #include <Spark.h>
+#include <DigitalInput.h>
+#include <WPILib.h>
 
 #include <NetworkTables/NetworkTable.h>
 
@@ -28,7 +30,6 @@ class Robot : public frc::IterativeRobot {
 public:
 	Joystick *stick = new Joystick(0);
 	Joystick *wheel = new Joystick(1);
-	Joystick *buttons = new Joystick(2);
 	Joystick *liftStick = new Joystick(3);
 
 	RobotDrive *drivetrain = new RobotDrive(0, 1, 2, 3);
@@ -37,17 +38,34 @@ public:
 
 	Spark *liftMotor1 = new Spark(4);
 	Spark *liftMotor2 = new Spark(5);
+	Spark *liftMotor3 = new Spark(6);
 
-	DoubleSolenoid *clawActuationSolenoid {1, 2};
-	Solenoid *clawPusherSolenoid {1, 2};
+	DoubleSolenoid *boxEjectorSolenoid = new DoubleSolenoid(0, 1);
+	frc::Solenoid *clawSliderSolenoid = new Solenoid(2);
+	frc::Solenoid *clawActuatorSolenoid = new Solenoid(3);
 	Compressor *compressor = new Compressor(0);
 
 	Encoder *liftEncoder = new Encoder(0, 1, false, Encoder::EncodingType::k4X);
 
-	NetworkTable *jetson = NetworkTable::GetTable("jetson");
+	JoystickButton* button1 = new JoystickButton(stick, 4);
+	JoystickButton* button2 = new JoystickButton(stick, 6);
+
+//	DigitalInput liftSwitch = new DigitalInput(6);
+
+//	NetworkTable *jetson = NetworkTable::GetTable("jetson");
 
 	void DisabledInit() {
 		wheel->SetYChannel(0);
+
+		liftEncoder->SetMinRate(10);
+		liftEncoder->SetDistancePerPulse(5);
+		liftEncoder->SetSamplesToAverage(7);
+		liftEncoder->Reset();
+
+		/*drivetrain->SetSafetyEnabled(safety);
+		liftMotor1->SetSafetyEnabled(safety);
+		liftMotor2->SetSafetyEnabled(safety);
+		liftMotor3->SetSafetyEnabled(safety);*/
 	}
 
 	void DisabledPeriodic() {
@@ -56,11 +74,6 @@ public:
 
 	void AutonomousInit() override {
 		compressor->SetClosedLoopControl(true);
-
-		liftEncoder->SetMinRate(10);
-		liftEncoder->SetDistancePerPulse(5);
-		liftEncoder->SetSamplesToAverage(7);
-		liftEncoder->Reset();
 
 		m_autoSelected = m_chooser.GetSelected();
 		// Uncomment below to use SmartDashboard
@@ -79,9 +92,6 @@ public:
 		if (m_autoSelected == kAutoNameCustom) {
 			// Custom Auto goes here
 		} else {
-			clawActuationSolenoid->Set(frc::DoubleSolenoid::Value::kForward);
-			liftMotor1->Set(0.5);
-			liftMotor2->Set(0.5);
 		}
 	}
 
@@ -101,11 +111,31 @@ public:
 			}
 			driveVelocity = stick->GetY();
 
-			driveVelocity = clamp(driveVelocity, 0.0, 1.0);
-			rotateVelocity = clamp(rotateVelocity, 0.0, 1.0);
+			driveVelocity = clamp(driveVelocity, -1.0, 1.0);
+			rotateVelocity = clamp(rotateVelocity, -1.0, 1.0) * -1;
 
 			drivetrain->ArcadeDrive(driveVelocity, rotateVelocity);
 			Wait(0.01);
+/*
+			if (stick->GetTrigger()) {
+				boxEjectorSolenoid->Set(frc::DoubleSolenoid::Value::kForward);
+			} else {
+				boxEjectorSolenoid->Set(frc::DoubleSolenoid::Value::kReverse);
+			}*/
+			if (button1->Get()) {
+				clawActuatorSolenoid->Set(true);
+			} else {
+				clawActuatorSolenoid->Set(false);
+			}
+			if (button2->Get()) {
+				clawSliderSolenoid->Set(true);
+			} else {
+				clawSliderSolenoid->Set(false);
+			}
+
+			liftMotor1->SetSpeed(liftStick->GetY());
+			liftMotor2->SetSpeed(liftStick->GetY());
+			liftMotor3->SetSpeed(liftStick->GetY());
 		}
 	}
 
@@ -135,6 +165,7 @@ private:
 	double driveVelocity = 0.0;
 	double rotateVelocity = 0.0;
 	bool accurateTurn = false;
+	bool safety = false;
 
 	// (float) distance - Distance forward or backwards, in feet
 	// (float) rotation - Rotation right or left, in degrees
