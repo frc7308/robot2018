@@ -47,8 +47,8 @@ public:
 
 	Encoder *liftEncoder = new Encoder(0, 1, false, Encoder::EncodingType::k4X);
 
-	JoystickButton* button1 = new JoystickButton(stick, 4);
-	JoystickButton* button2 = new JoystickButton(stick, 6);
+	JoystickButton* button1 = new JoystickButton(stick, 1);
+	JoystickButton* button2 = new JoystickButton(stick, 3);
 
 //	DigitalInput liftSwitch = new DigitalInput(6);
 
@@ -57,15 +57,15 @@ public:
 	void DisabledInit() {
 		wheel->SetYChannel(0);
 
-		liftEncoder->SetMinRate(10);
 		liftEncoder->SetDistancePerPulse(5);
-		liftEncoder->SetSamplesToAverage(7);
 		liftEncoder->Reset();
 
 		/*drivetrain->SetSafetyEnabled(safety);
 		liftMotor1->SetSafetyEnabled(safety);
 		liftMotor2->SetSafetyEnabled(safety);
 		liftMotor3->SetSafetyEnabled(safety);*/
+
+		SmartDashboard::PutString("Hello", "Hello World");
 	}
 
 	void DisabledPeriodic() {
@@ -92,6 +92,7 @@ public:
 		if (m_autoSelected == kAutoNameCustom) {
 			// Custom Auto goes here
 		} else {
+			MoveForTime(2.0, 1.0, 0.0);
 		}
 	}
 
@@ -116,20 +117,27 @@ public:
 
 			drivetrain->ArcadeDrive(driveVelocity, rotateVelocity);
 			Wait(0.01);
-/*
+
 			if (stick->GetTrigger()) {
 				boxEjectorSolenoid->Set(frc::DoubleSolenoid::Value::kForward);
 			} else {
 				boxEjectorSolenoid->Set(frc::DoubleSolenoid::Value::kReverse);
-			}*/
-			if (button1->Get()) {
+			}
+			if (button1->Get() && clawOut) {
 				clawActuatorSolenoid->Set(true);
 			} else {
 				clawActuatorSolenoid->Set(false);
 			}
-			if (button2->Get()) {
+			if (button2->Get() && button2Released) {
+				clawOut = !clawOut;
+				button2Released = false;
+			} else {
+				button2Released = true;
+			}
+			if (clawOut) {
 				clawSliderSolenoid->Set(true);
 			} else {
+				clawActuatorSolenoid->Set(false);
 				clawSliderSolenoid->Set(false);
 			}
 
@@ -145,7 +153,6 @@ public:
 	}
 
 private:
-	frc::LiveWindow& m_lw = *LiveWindow::GetInstance();
 	frc::SendableChooser<std::string> m_chooser;
 	const std::string kAutoNameDefault = "Default";
 	const std::string kAutoNameCustom = "My Auto";
@@ -159,13 +166,14 @@ private:
 	int liftState; // 0 - lowest, 1 - switch, 2 - scale, -1 - err
 	float clawAngle; // Angle from claw encoder around 360 deg
 	float goal_clawAngle; // Goal for the claw angle
-	int clawState; // 0 - back, 1 - extended claw closed, 2 - extended claw open, -1 - err
 	bool robotError; // Is true if an inconsistency or error has been found
 	bool fullAutonomous = false;
 	double driveVelocity = 0.0;
 	double rotateVelocity = 0.0;
 	bool accurateTurn = false;
 	bool safety = false;
+	bool clawOut = false;
+	bool button2Released = false;
 
 	// (float) distance - Distance forward or backwards, in feet
 	// (float) rotation - Rotation right or left, in degrees
@@ -179,10 +187,13 @@ private:
 	// (float) rotation - The speed in which to rotate left or right (0.0 to 1.0)
 	void MoveForTime(float time, float movement, float rotation) {
 		timer = new Timer();
+		timer->Reset();
+		timer->Start();
 		while(timer->Get() < time) {
 			drivetrain->Drive(movement, rotation);
 			Wait(0.01);
 		}
+		timer->Stop();
 	}
 
 	float clamp(float x, float a, float b)
