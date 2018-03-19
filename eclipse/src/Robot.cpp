@@ -56,6 +56,12 @@ public:
 	JoystickButton* button2 = new JoystickButton(bboard, 1);
 	JoystickButton* button3 = new JoystickButton(bboard, 4);
 	JoystickButton* throwButton = new JoystickButton(bboard, 3);
+	JoystickButton* stopZeroButton = new JoystickButton(stick, 7);
+	JoystickButton* wheelTrigger = new JoystickButton(wheel, 1);
+	JoystickButton* rotate180button = new JoystickButton(stick, 6);
+	JoystickButton* pickupPresetButton = new JoystickButton(liftStick, 5);
+	JoystickButton* switchPresetButton = new JoystickButton(liftStick, 3);
+	JoystickButton* scalePresetButton = new JoystickButton(liftStick, 6);
 
 	DigitalInput *liftSwitch = new DigitalInput(3);
 
@@ -77,8 +83,11 @@ public:
 		wheel->SetYChannel(0);
 
 		chooser.AddDefault("Middle -> Switch", "middle");
-		chooser.AddObject("Left -> Switch/Scale", "left");
-		chooser.AddObject("Right -> Switch/Scale", "right");
+		chooser.AddObject("Left -> Switch", "left1");
+		chooser.AddObject("Right -> Switch", "right1");
+		chooser.AddObject("Left -> Scale/Switch", "left2");
+		chooser.AddObject("Right -> Scale/Switch", "right2");
+		chooser.AddObject("Forwards", "forwards");
 		chooser.AddObject("NONE", "none");
 		SmartDashboard::PutData("autonomous", &chooser);
 
@@ -98,10 +107,13 @@ public:
 
 		compressor->SetClosedLoopControl(true);
 		drivetrain->SetSafetyEnabled(false);
+
+		SmartDashboard::PutString("Aligning", "NO");
+		SmartDashboard::PutString("Turn180", "NO");
 	}
 
 	void DisabledPeriodic() {
-		SmartDashboard::PutString("jetson", jetson->GetString("rotate", "nope"));
+		SmartDashboard::PutNumber("jetson", jetson->GetNumber("rotate", 0.0));
 		SmartDashboard::PutNumber("lift height", liftEncoder->GetDistance());
 		SmartDashboard::PutNumber("At zero", liftSwitch->Get());
 		if (!liftSwitch->Get()) {
@@ -135,14 +147,121 @@ public:
 			if(gameData.length() > 0) {
 				if(gameData[0] == 'L') {
 					MoveUntilAtAngle(0.3, -45, 300.0);
-					DriveStraightForTime(0.7, 0.5);
+					MoveUntilAtLiftHeight(0.75, 0.0, 300.0);
+					DriveStraightForTime(1.0, 0.75);
+					clawSliderSolenoid->Set(frc::DoubleSolenoid::kForward);
+					Wait(1.0);
+					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
+					Wait(0.3);
+					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
+					Wait(0.3);
+					clawSliderSolenoid->Set(frc::DoubleSolenoid::kReverse);
+					Wait(15);
+				} else if(gameData[0] == 'R') {
+					MoveUntilAtAngle(0.3, 45, 300.0);
+					MoveUntilAtLiftHeight(0.75, 0.0, 300.0);
+					DriveStraightForTime(1.0, 0.75);
+					clawSliderSolenoid->Set(frc::DoubleSolenoid::kForward);
+					Wait(1.0);
+					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
+					Wait(0.3);
+					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
+					Wait(0.3);
+					clawSliderSolenoid->Set(frc::DoubleSolenoid::kReverse);
+					Wait(15);
 				}
 			}
-		} else if (autoSelected == "left") {
+		} else if (autoSelected == "left1") {
 	        if(gameData.length() > 0) {
-	        	if(gameData[0] == 'L') {
+				if(gameData[0] == 'L') {
+						DriveStraightForTime(1.8, 0.7);
+						MoveUntilAtAngle(0.3, 90.0, 300.0);
+						MoveUntilAtLiftHeight(0.0, 0.0, 300.0);
+						clawSliderSolenoid->Set(frc::DoubleSolenoid::kForward);
+						Wait(0.5);
+						clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
+						Wait(0.3);
+						clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
+						Wait(0.2);
+						MoveUntilAtAngle(-0.3, 110.0, -550.0);
+						DriveStraightForTime(0.7, -0.6);
+						MoveUntilAtAngle(0.0, 20, -550.0);
+						clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
+						DriveStraightForTime(0.2, 0.25);
+						clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
+						MoveUntilAtLiftHeight(0.0, 0.0, 300.0);
+						DriveStraightForTime(0.3, 0.3);
+						clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
+						boxEjectorSolenoid->Set(frc::DoubleSolenoid::kForward);
+						Wait(0.3);
+						boxEjectorSolenoid->Set(frc::DoubleSolenoid::kReverse);
+						clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
+						Wait(0.2);
+						clawSliderSolenoid->Set(frc::DoubleSolenoid::kReverse);
+						Wait(15);
+				} else {
+					DriveStraightForTime(2.2, 0.7);
+					MoveUntilAtAngle(0.5, 90, 0.0);
+					DriveStraightForTime(1.9, 0.7);
+					Wait(15);
+				}
+	        }
+		} else if (autoSelected == "left2") {
+	        if(gameData.length() > 0) {
+	        	if (gameData[1] == 'L') {
+					MoveForTime(prefs->GetDouble("LiftMoveForwardTime", 3.5), 0.5, 0.0, 1000.0);
+					MoveForTime(0.3, 0.2, 0.0, 1000.0);
+					MoveUntilAtLiftHeight(0.0, 0.0, 3550.0);
+					clawSliderSolenoid->Set(frc::DoubleSolenoid::kForward);
+					Wait(1.0);
+					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
+					Wait(0.3);
+					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
+					Wait(0.3);
+					clawSliderSolenoid->Set(frc::DoubleSolenoid::kReverse);
+					MoveForTime(1.0, 0.25, 0.0, 3550.0);
+					MoveUntilAtLiftHeight(0.0, 0.0, 100);
+					clawSliderSolenoid->Set(frc::DoubleSolenoid::kForward);
+					MoveUntilAtLiftHeight(0.0, 0.0, -550);
+					Wait(15);
+	        	} else if(gameData[0] == 'L') {
+						DriveStraightForTime(1.8, 0.7);
+						MoveUntilAtAngle(0.3, 90.0, 300.0);
+						MoveUntilAtLiftHeight(0.0, 0.0, 300.0);
+						clawSliderSolenoid->Set(frc::DoubleSolenoid::kForward);
+						Wait(0.5);
+						clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
+						Wait(0.3);
+						clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
+						Wait(0.2);
+						MoveUntilAtAngle(-0.3, 110.0, -550.0);
+						DriveStraightForTime(0.7, 0.6);
+						MoveUntilAtAngle(0.0, 20, -550.0);
+						clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
+						DriveStraightForTime(0.2, 0.25);
+						clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
+						MoveUntilAtLiftHeight(0.0, 0.0, 300.0);
+						DriveStraightForTime(0.3, 0.3);
+						clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
+						boxEjectorSolenoid->Set(frc::DoubleSolenoid::kForward);
+						Wait(0.3);
+						boxEjectorSolenoid->Set(frc::DoubleSolenoid::kReverse);
+						clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
+						Wait(0.2);
+						clawSliderSolenoid->Set(frc::DoubleSolenoid::kReverse);
+						Wait(15);
+	        	} else {
+	        		DriveStraightForTime(2.2, 0.7);
+	        		MoveUntilAtAngle(0.5, 90, 0.0);
+	        		DriveStraightForTime(1.9, 0.7);
+	        		Wait(15);
+	        	}
+	        }
+		} else if (autoSelected == "right1") {
+	        if(gameData.length() > 0) {
+				if(gameData[0] == 'R') {
 					DriveStraightForTime(1.8, 0.7);
-					MoveUntilAtAngle(0.3, 90.0, 300.0);
+					MoveUntilAtAngle(0.3, -90.0, 300.0);
 					MoveUntilAtLiftHeight(0.0, 0.0, 300.0);
 					clawSliderSolenoid->Set(frc::DoubleSolenoid::kForward);
 					Wait(0.5);
@@ -150,9 +269,9 @@ public:
 					Wait(0.3);
 					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
 					Wait(0.2);
-					MoveUntilAtAngle(-0.3, 110.0, -600.0);
-					DriveStraightForTime(0.7, 0.6);
-					MoveUntilAtAngle(0.0, 20, -600.0);
+					MoveUntilAtAngle(-0.3, -110.0, -550.0);
+					DriveStraightForTime(0.7, -0.6);
+					MoveUntilAtAngle(0.0, -20, -550.0);
 					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
 					DriveStraightForTime(0.2, 0.25);
 					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
@@ -165,61 +284,16 @@ public:
 					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
 					Wait(0.2);
 					clawSliderSolenoid->Set(frc::DoubleSolenoid::kReverse);
-					Wait(100);
-	        	} else if (gameData[1] == 'L') {
-					MoveForTime(prefs->GetDouble("LiftMoveForwardTime", 3.5), 0.5, 0.0, 1000.0);
-					MoveForTime(0.3, 0.2, 0.0, 1000.0);
-					MoveUntilAtLiftHeight(0.0, 0.0, 3600.0);
-					clawSliderSolenoid->Set(frc::DoubleSolenoid::kForward);
-					Wait(1.0);
-					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
-					Wait(0.3);
-					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
-					Wait(0.3);
-					clawSliderSolenoid->Set(frc::DoubleSolenoid::kReverse);
-					MoveForTime(1.0, 0.25, 0.0, 3600.0);
-					MoveUntilAtLiftHeight(0.0, 0.0, 100);
-					clawSliderSolenoid->Set(frc::DoubleSolenoid::kForward);
-					MoveUntilAtLiftHeight(0.0, 0.0, -600);
-					Wait(100);
-	        	} else {
-	        		DriveStraightForTime(2.2, 0.7);
-	        		MoveUntilAtAngle(0.5, -90, 0.0);
-	        		DriveStraightForTime(1.9, 0.7);
-	        		MoveUntilAtAngle(0.0, -90, 0.0);
-	        	}
-	        }
-		} else if (autoSelected == "right") {
-			if(gameData.length() > 0) {
-				if(gameData[0] == 'R') {
-					MoveForTime(0.2, 0.5, -0.07, 0.0);
-					MoveForTime(2.1, 0.5, 0.0, 0.0);
-					MoveForTime(0.2, 0.0, 0.0, 0.0);
-					MoveForTime(1.9, 0.5, 0.6, 300.0);
-					MoveForTime(0.3, 0.25, 0.0, 0.0);
-					clawSliderSolenoid->Set(frc::DoubleSolenoid::kForward);
-					Wait(0.3);
-					boxEjectorSolenoid->Set(frc::DoubleSolenoid::kForward);
-					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
-					Wait(0.3);
-					boxEjectorSolenoid->Set(frc::DoubleSolenoid::kReverse);
-					clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
-					Wait(0.3);
-					MoveForTime(0.5, -0.5, 0.0, 0.0);
-					MoveForTime(0.85, -0.5, -0.5, -600);
-					MoveForTime(2.5, -0.5, 0.005, 0.0);
-					MoveForTime(1.0, 0.0, 0.0, 0.0);
-					Wait(100);
+					Wait(15);
 				} else {
-					MoveForTime(3.7, 0.5, 0.0, 0.0);
-					MoveForTime(1.0, 0.5, 0.5, 0.0);
-					MoveForTime(2.0, 0.5, 0.0, 0.0);
-					MoveForTime(0.975, 0.5, 0.5, 0.0);
-					MoveForTime(0.1, 0.0, 0.0, 0.0);
-					Wait(100);
+					DriveStraightForTime(2.2, 0.7);
+					MoveUntilAtAngle(0.5, -90, 0.0);
+					DriveStraightForTime(1.9, 0.7);
+					Wait(15);
 				}
-			} else if (autoSelected == "test") {
-				MoveForTime(3.7, 0.5, 0.0, 0.0);
+			} else if (autoSelected == "forwards") {
+				DriveStraightForTime(1.25, 0.75);
+				Wait(15);
 			}
 		}
 	}
@@ -232,35 +306,63 @@ public:
 	}
 
 	void TeleopPeriodic() {
+		SmartDashboard::PutNumber("height", liftEncoder->GetDistance());
+		SmartDashboard::PutNumber("lift", liftEncoder->Get());
+		SmartDashboard::PutNumber("jetson", jetson->GetNumber("rotate", 0.0));
+
 		while (IsOperatorControl() && IsEnabled()) {
-			while (!zeroed && (liftEncoder->Get() < 600) && !fakeZeroed) {
+			while (!zeroed && (liftEncoder->Get() < 550) && !fakeZeroed) {
 				driveLift(0.5);
 				if (!liftSwitch->Get()) {
 					liftEncoder->Reset();
 					zeroed = true;
 				}
-				if (stick->GetTrigger()) {
+				if (stopZeroButton->Get()) {
 					fakeZeroed = true;
 				}
 			}
-			while (!zeroed && (liftEncoder->Get() > -600) && !fakeZeroed) {
+			while (!zeroed && (liftEncoder->Get() > -550) && !fakeZeroed) {
 				driveLift(-0.5);
 				if (!liftSwitch->Get()) {
 					liftEncoder->Reset();
 					zeroed = true;
 				}
-				if (stick->GetTrigger()) {
+				if (stopZeroButton->Get()) {
 					fakeZeroed = true;
 				}
 			}
-			SmartDashboard::PutNumber("height", liftEncoder->GetDistance());
-			SmartDashboard::PutNumber("encoder val", liftEncoder->Get());
-			if (accurateTurn) {
-				rotateVelocity = wheel->GetY() * 0.8;
-			} else {
-				rotateVelocity = wheel->GetY() * 1.2;
-			}
+
+			rotateVelocity = wheel->GetY() * 1.2;
 			driveVelocity = stick->GetY();
+
+			if (stick->GetTrigger()) {
+				alignToClosestBox();
+				SmartDashboard::PutString("Aligning", "YES");
+			} else {
+				SmartDashboard::PutString("Aligning", "NO");
+			}
+
+			if (rotate180button->Get()) {
+				if (wheel->GetY() > 0.1) {
+					turnToAngle(170);
+					SmartDashboard::PutString("Turn180", "YES");
+				} else if (wheel->GetY() < -0.1) {
+					turnToAngle(-170);
+					SmartDashboard::PutString("Turn180", "YES");
+				} else {
+					SmartDashboard::PutString("Turn180", "NO");
+				}
+			} else {
+				SmartDashboard::PutString("Turn180", "NO");
+			}
+
+			if (wheelTrigger->Get()) {
+				if (wheel->GetY() > 0.1) {
+					rotateVelocity = 0.3;
+				} else if (wheel->GetY() < -0.1) {
+					rotateVelocity = -0.3;
+				}
+			}
 
 			if (liftEncoder->Get() >= 200) {
 				speedLimit = 100 / liftEncoder->Get() + 400;
@@ -294,11 +396,8 @@ public:
 			if (clawOut) {
 				clawSliderSolenoid->Set(frc::DoubleSolenoid::kForward);
 			} else {
-				clawSliderSolenoid->Set(frc::DoubleSolenoid::kForward);
-				/*
 				clawSliderSolenoid->Set(frc::DoubleSolenoid::kReverse);
 				clawOpen = false;
-				*/
 			}
 			if (clawOpen) {
 				clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
@@ -306,13 +405,24 @@ public:
 				clawActuatorSolenoid->Set(frc::DoubleSolenoid::kReverse);
 			}
 
-			if (throwButton->Get()) {
+			if (throwButton->Get() && clawOut) {
 				boxEjectorSolenoid->Set(frc::DoubleSolenoid::kForward);
 				clawActuatorSolenoid->Set(frc::DoubleSolenoid::kForward);
 			}
 
 			liftVelocity = -1 * liftStick->GetY();
-			if (liftEncoder->Get() < 0) {
+
+			if (pickupPresetButton->Get()) {
+				moveLiftToPosition(-500);
+			} else if (switchPresetButton->Get()) {
+				moveLiftToPosition(300);
+			} else if (scalePresetButton->Get()) {
+				moveLiftToPosition(3500);
+			} else {
+				lifting = false;
+			}
+
+			if (liftEncoder->Get() < -400) {
 				liftVelocity = clamp(liftVelocity, -0.6, 1.0);
 			}
 			if (liftAtTop && !fakeZeroed) {
@@ -442,29 +552,24 @@ private:
 	bool clawOutReal = false;
 	bool fakeZeroed = false;
 	static const float straight_kP = 0.03;
-	static const float turning_kP = 0.03;
+	static const float turning_kP = 0.033333;
+	static const float lift_kP = 0.005;
 	std::string gameData;
 
-	// (float) time - Time to move
-	// (float) movement - The speed in which to move forwards or backwards (0.0 to 1.0)
-	// (float) rotation - The speed in which to rotate left or right (0.0 to 1.0)
+	double goal_align;
+	bool aligning;
+
+	double goal_lift;
+	bool lifting;
+
+	// AUTONOMOUS COMMANDS (blocking)
 	void MoveForTime(float time, float movement, float rotation, float lift) {
 		timer = new Timer();
 		timer->Reset();
 		timer->Start();
 		while(timer->Get() < time) {
 			drivetrain->Drive(-1 * movement, rotation);
-			if (abs(lift - liftEncoder->Get()) > 25) {
-				if (lift - liftEncoder->Get() > 50) {
-					driveLift(1.0);
-				} else if (lift - liftEncoder->Get() > 0) {
-					driveLift(0.3);
-				} else if (lift - liftEncoder->Get() < 50) {
-					driveLift(-1.0);
-				} else if (lift - liftEncoder->Get() < 0) {
-					driveLift(-0.3);
-				}
-			}
+			moveLiftToPosition(lift);
 			Wait(0.01);
 		}
 		drivetrain->Drive(0.0, 0.0);
@@ -473,35 +578,13 @@ private:
 	}
 
 	void MoveForTimeWithAngle(float time, float movement, float angle, float lift) {
-		float rotationSpeed = 0.0;
-		if (angle > 0) {
-			rotationSpeed = 0.8;
-		} else if (angle < 0) {
-			rotationSpeed = -0.8;
-		}
 		timer = new Timer();
 		timer->Reset();
 		timer->Start();
 		float relativeAngle = gyro->GetAngle() + angle;
 		while(timer->Get() < time) {
-			if (abs(relativeAngle - gyro->GetAngle()) < 10) {
-				float offAngle = (relativeAngle - gyro->GetAngle()) * -1;
-				drivetrain->Drive(-1 * movement, -offAngle * straight_kP);
-				Wait(0.004);
-			} else {
-				drivetrain->Drive(-1 * movement, rotationSpeed);
-			}
-			if (abs(lift - liftEncoder->Get()) > 25) {
-				if (lift - liftEncoder->Get() > 50) {
-					driveLift(1.0);
-				} else if (lift - liftEncoder->Get() > 0) {
-					driveLift(0.3);
-				} else if (lift - liftEncoder->Get() < 50) {
-					driveLift(-1.0);
-				} else if (lift - liftEncoder->Get() < 0) {
-					driveLift(-0.3);
-				}
-			}
+			turnToAngle(angle);
+			moveLiftToPosition(lift);
 		}
 		drivetrain->Drive(0.0, 0.0);
 		driveLift(0.0);
@@ -509,32 +592,10 @@ private:
 	}
 
 	void MoveUntilAtAngle(float movement, float angle, float lift) {
-		float rotationSpeed = 0.0;
-		if (angle > 0) {
-			rotationSpeed = 0.8;
-		} else if (angle < 0) {
-			rotationSpeed = -0.8;
-		}
 		float relativeAngle = gyro->GetAngle() + angle;
-		while(abs(relativeAngle - gyro->GetAngle()) > 5) {
-			if (abs(relativeAngle - gyro->GetAngle()) < 10) {
-				float offAngle = (relativeAngle - gyro->GetAngle()) * -1;
-				drivetrain->Drive(-1 * movement, -offAngle * straight_kP);
-				Wait(0.004);
-			} else {
-				drivetrain->Drive(-1 * movement, rotationSpeed);
-			}
-			if (abs(lift - liftEncoder->Get()) > 25) {
-				if (lift - liftEncoder->Get() > 50) {
-					driveLift(1.0);
-				} else if (lift - liftEncoder->Get() > 0) {
-					driveLift(0.3);
-				} else if (lift - liftEncoder->Get() < 50) {
-					driveLift(-1.0);
-				} else if (lift - liftEncoder->Get() < 0) {
-					driveLift(-0.3);
-				}
-			}
+		while(abs(relativeAngle - gyro->GetAngle()) > 3) {
+			turnToAngle(angle);
+			moveLiftToPosition(lift);
 		}
 		drivetrain->Drive(0.0, 0.0);
 		driveLift(0.0);
@@ -543,15 +604,7 @@ private:
 	void MoveUntilAtLiftHeight(float movement, float rotation, float lift) {
 		while(abs(lift - liftEncoder->Get()) > 25) {
 			drivetrain->Drive(-1 * movement, rotation);
-			if (lift - liftEncoder->Get() > 50) {
-				driveLift(1.0);
-			} else if (lift - liftEncoder->Get() > 0) {
-				driveLift(0.3);
-			} else if (lift - liftEncoder->Get() < 50) {
-				driveLift(-1.0);
-			} else if (lift - liftEncoder->Get() < 0) {
-				driveLift(-0.3);
-			}
+			moveLiftToPosition(lift);
 		}
 		drivetrain->Drive(0.0, 0.0);
 		driveLift(0.0);
@@ -573,14 +626,16 @@ private:
 		timer->Stop();
 	}
 
+	// Utility commands
+
 	float clamp(float x, float a, float b) {
 	    return x < a ? a : (x > b ? b : x);
 	}
 
 	void driveLift(double velocity) {
-		/*liftMotor1->SetSpeed(velocity);
+		liftMotor1->SetSpeed(velocity);
 		liftMotor2->SetSpeed(velocity);
-		liftMotor3->SetSpeed(velocity);*/
+		liftMotor3->SetSpeed(velocity);
 	}
 
 	void findZero(double range) {
@@ -601,6 +656,43 @@ private:
 			driveLift(-0.2);
 		}
 	}
+
+	// Non-blocking movement commands
+
+	void alignToClosestBox() {
+		turnToAngle(jetson->GetNumber("rotate", 0.0));
+	}
+
+	void turnToAngle(float angle) {
+		if (aligning == false) {
+			goal_align = gyro->GetAngle() + angle;
+			aligning = true;
+		}
+		if (aligning == true) {
+			float offAngle = goal_align - gyro->GetAngle();
+			rotateVelocity = offAngle * turning_kP;
+
+			if (abs(offAngle) < 1) {
+				aligning = false;
+			}
+		}
+	}
+
+	void moveLiftToPosition(float encoderValue) {
+		if (lifting == false) {
+			goal_lift = liftEncoder->Get() + encoderValue;
+			lifting = true;
+		}
+		if (lifting == true && zeroed) {
+			float offValue = goal_lift - liftEncoder->Get();
+			liftVelocity = offValue * lift_kP;
+
+			if (abs(offValue) < 25) {
+				lifting = false;
+			}
+		}
+	}
 };
 
+// Start robot
 START_ROBOT_CLASS(Robot)
